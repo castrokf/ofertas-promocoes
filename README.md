@@ -1,373 +1,288 @@
 # AutoTechDealsX
 
-Projeto em Python 3.11 para monitorar ofertas de hardware, periféricos, tecnologia e jogos digitais, aplicar filtros de qualidade, manter histórico local em SQLite e publicar automaticamente no X/Twitter usando a API oficial.
+Plataforma SaaS para monitorar promoções de hardware, periféricos, eletrônicos, jogos digitais e produtos tech, com coleta segura, histórico de preços, engine de decisão, anti-duplicidade, geração de mensagens e publicação em canais oficiais ou permitidos.
 
-## O que o projeto entrega
+## Stack escolhida
 
-- Coleta modular por loja com delays entre requisições.
-- Respeito a `robots.txt` antes de tentar coletar HTML ou JSON público.
-- Normalização de produtos em um formato único.
-- Filtro de descontos, estoque, histórico de preço e sinais de risco.
-- Geração de link afiliado com aviso explícito no post.
-- Publicação oficial no X em modo real ou `TEST_MODE`.
-- Scheduler simples com painel no terminal.
-- Banco SQLite para produtos, histórico e itens já publicados.
+Usei Python 3.11 + FastAPI no backend porque a maior parte do sistema depende de conectores, filas, regras de preço, integração com APIs e workers assíncronos. Python deixa essa camada mais simples de testar e evoluir. Para o painel, usei React + Vite + TypeScript, que entrega uma interface leve para administrar ofertas, lojas, regras, canais, logs e URLs monitoradas.
+
+Componentes principais:
+
+- Backend: FastAPI, SQLAlchemy, Alembic, Pydantic.
+- Banco: PostgreSQL.
+- Fila e scheduler: Redis + Celery.
+- Frontend: React, Vite, TypeScript.
+- Deploy: Docker Compose local e Blueprint do Render.
+- Publicação: Discord Webhook, Telegram Bot API, X/Twitter API oficial, canal interno do site.
 
 ## Estrutura
 
 ```text
-AutoTechDealsX/
-├── main.py
-├── config.py
-├── requirements.txt
-├── .env.example
-├── README.md
-├── scrapers/
-├── filters/
-├── affiliate/
-├── publisher/
-├── database/
-├── scheduler/
-├── logs/
-└── tests/
+backend/
+  app/
+    api/
+    affiliate/
+    ai/
+    connectors/
+    core/
+    models/
+    price_engine/
+    publishers/
+    schemas/
+    services/
+    workers/
+  alembic/
+  scripts/
+  tests/
+frontend/
+  src/
+    components/
+    hooks/
+    pages/
+    services/
+docker/
+docker-compose.yml
+render.yaml
+.env.example
 ```
 
-## Requisitos
+## O que já está implementado
 
-- Python 3.11
-- `pip`
-- Conta de desenvolvedor no X com app configurado
+- API REST protegida por JWT.
+- Seed com usuário admin inicial.
+- Modelagem PostgreSQL para lojas, categorias, produtos, histórico de preços, ofertas, publicações, regras, canais, logs, URLs monitoradas, configurações e afiliados.
+- Migração Alembic inicial.
+- Worker Celery e Celery Beat com filas de coleta/publicação.
+- Conector funcional da Steam usando endpoint público de loja.
+- Conectores preparados e seguros para Amazon, Mercado Livre, AliExpress, Magazine Luiza, Shopee, Kabum, Terabyte, Pichau, Nuuvem, Epic, Green Man Gaming, GOG, Xbox, PlayStation e Nintendo.
+- Engine de preço com desconto mínimo, média histórica, menor preço, frete abusivo, estoque, anti-duplicidade e classificação de qualidade.
+- Gerador de mensagens para Twitter/X, Telegram, Discord e site.
+- Publicadores para Discord, Telegram, X/Twitter oficial e site.
+- Painel React com login, cards de ofertas com imagem, aprovação, publicação, lojas, regras, canais, URLs e logs.
+- Modo seguro `PUBLISH_DRY_RUN=true`, que gera publicação registrada sem enviar para canais externos.
 
-## Instalação
+## Requisitos locais
+
+- Docker Desktop, recomendado.
+- Ou Python 3.11, PostgreSQL, Redis e Node.js 20+ se rodar sem Docker.
+
+## Configuração
+
+Crie o arquivo `.env`:
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
 copy .env.example .env
 ```
 
-## Como criar app no X Developer
-
-Em maio de 2026, a documentação do X indica que você deve criar um app dentro do console oficial e usar a API v2 para publicação de posts.
-
-1. Acesse o console oficial: [console.x.com](https://console.x.com/)
-2. Crie ou selecione um `Project`.
-3. Crie um `App` dentro do projeto.
-4. Habilite permissões de escrita para o app.
-5. Gere as credenciais do app:
-   - `API Key`
-   - `API Key Secret`
-   - `Access Token`
-   - `Access Token Secret`
-   - `Bearer Token`
-6. Preencha essas chaves no arquivo `.env`.
-
-Referências oficiais usadas para esta parte:
-
-- [X API overview](https://docs.x.com/x-api)
-- [Manage Posts](https://docs.x.com/x-api/posts/manage-tweets/introduction)
-- [Create or Edit Post](https://docs.x.com/x-api/posts/create-post)
-- [Developer account support](https://developer.x.com/en/support/twitter-api/developer-account1)
-
-## Configuração do `.env`
+Principais variáveis:
 
 ```env
+DATABASE_URL=postgresql+psycopg://autotech:autotech@postgres:5432/autotechdealsx
+REDIS_URL=redis://redis:6379/0
+SECRET_KEY=troque-em-producao
+PUBLISH_MODE=semi_automatic
+PUBLISH_DRY_RUN=true
+MIN_DISCOUNT_PERCENT=15
+AMAZON_ASSOCIATE_TAG=
+MERCADO_LIVRE_AFFILIATE_ID=
+MERCADO_LIVRE_TOOL_ID=
+ALIEXPRESS_AFFILIATE_ID=
+DISCORD_WEBHOOK_URL=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
 X_API_KEY=
 X_API_SECRET=
 X_ACCESS_TOKEN=
 X_ACCESS_TOKEN_SECRET=
 X_BEARER_TOKEN=
-AMAZON_ASSOCIATE_TAG=
-ALIEXPRESS_AFFILIATE_ID=
-MERCADO_LIVRE_AFFILIATE_ID=
-MERCADO_LIVRE_TOOL_ID=
-POST_INTERVAL_MINUTES=15
-MAX_POSTS_PER_HOUR=4
-MIN_DISCOUNT_PERCENT=15
-TEST_MODE=true
-DISABLED_STORES=
 ```
 
-### Variáveis principais
+Comece com `PUBLISH_DRY_RUN=true`. Só mude para `false` quando os canais estiverem configurados e você já tiver testado as mensagens.
 
-- `POST_INTERVAL_MINUTES`: intervalo do ciclo automático.
-- `MAX_POSTS_PER_HOUR`: trava de volume de publicação.
-- `MIN_DISCOUNT_PERCENT`: corte mínimo do filtro.
-- `TEST_MODE`: se `true`, gera o texto do post sem publicar.
-- `DISABLED_STORES`: lista separada por vírgulas para pular lojas instáveis ou sem permissão, por exemplo `Nuuvem,Amazon Brasil`.
-
-## Como rodar
-
-### Painel web local
+## Rodar com Docker
 
 ```bash
-python app.py
+docker compose up --build
 ```
 
-Abra:
+Acesse:
 
 ```text
-http://127.0.0.1:5000
+http://localhost:3000
 ```
 
-O painel mostra ofertas aprovadas com capa/imagem, preco, desconto, link da oferta e texto pronto para copiar e publicar manualmente.
-
-### Modo teste
-
-Gera tweets de preview e logs, mas não publica no X. O modo teste usa `autotechdealsx_test.sqlite3`, separado do banco de produção, para não travar a primeira publicação real com histórico de simulação.
-
-```bash
-python main.py --test
-```
-
-### Modo publicação
-
-Executa uma rodada usando o valor atual de `TEST_MODE`. Se quiser publicar de verdade, deixe `TEST_MODE=false` no `.env`.
-
-```bash
-python main.py --once
-```
-
-### Modo exportação manual
-
-Filtra e gera posts prontos em `exports/`, sem chamar a API do X.
-
-```bash
-python main.py --export --games
-```
-
-Para escolher quantos posts salvar:
-
-```bash
-python main.py --export --games --export-limit 10
-```
-
-### Loop contínuo
-
-```bash
-python main.py --run
-```
-
-### Somente hardware
-
-```bash
-python main.py --hardware
-```
-
-### Somente jogos
-
-```bash
-python main.py --games
-```
-
-Você também pode combinar:
-
-```bash
-python main.py --run --hardware
-python main.py --test --games
-```
-
-## Banco SQLite
-
-O arquivo padrão do banco é `autotechdealsx.sqlite3`.
-
-Quando `TEST_MODE=true` ou `--test` é usado, o banco passa a ser `autotechdealsx_test.sqlite3`.
-
-Tabelas criadas automaticamente:
-
-### `products`
-
-- `id`
-- `title`
-- `category`
-- `store`
-- `current_price`
-- `old_price`
-- `discount_percent`
-- `url`
-- `affiliate_url`
-- `image_url`
-- `stock_status`
-- `created_at`
-- `updated_at`
-
-### `posted_deals`
-
-- `id`
-- `product_hash`
-- `title`
-- `store`
-- `posted_url`
-- `posted_at`
-- `tweet_id`
-
-### `price_history`
-
-- `id`
-- `product_hash`
-- `price`
-- `checked_at`
-
-## Regras implementadas
-
-- Coleta em intervalos automáticos.
-- Evita repost com base em `product_hash`.
-- Bloqueia itens sem estoque.
-- Exige desconto mínimo configurável.
-- Exige preço atual menor que o último salvo quando houver histórico.
-- Tenta bloquear títulos genéricos, suspeitos ou vendedores pouco confiáveis.
-- Tenta bloquear frete abusivo quando a informação está disponível.
-- Prioriza maior desconto, marcas fortes, novos mínimos históricos e sinais de popularidade.
-- Limita postagens por hora.
-- Sinaliza claramente quando o link é afiliado.
-
-## Painel no terminal
-
-O scheduler mostra:
-
-- ofertas coletadas
-- ofertas aprovadas
-- ofertas postadas
-- erros
-- próximo horário de execução
-
-## Como adicionar novos sites
-
-1. Crie um novo módulo dentro de `scrapers/`.
-2. Reutilize `BaseScraper` ou `HtmlListingScraper`.
-3. Prefira endpoints JSON públicos ou APIs oficiais.
-4. Valide `robots.txt` e os termos do site.
-5. Registre a nova função em `scrapers/__init__.py`.
-6. Inclua a loja no plano de coleta em `main.py`.
-
-## Como configurar afiliados
-
-Hoje o projeto já possui suporte inicial para:
-
-- Amazon Brasil via `tag=`
-- AliExpress via parâmetros básicos de rastreio
-- Mercado Livre via `matt_word`, com `matt_tool` opcional para separar canais
-
-Observação importante:
-
-Cada programa de afiliados pode exigir um formato exato de deeplink, subid, campanha ou assinatura. Se a sua conta exigir parâmetros diferentes, ajuste os módulos em `affiliate/`.
-
-## Como evitar spam e bloqueio
-
-- Use `TEST_MODE=true` antes de ativar a publicação real.
-- Mantenha `POST_INTERVAL_MINUTES` e `MAX_POSTS_PER_HOUR` conservadores.
-- Não publique o mesmo link repetidamente.
-- Não poste ofertas fracas só para encher o feed.
-- Não remova a sinalização de link afiliado.
-- Revise periodicamente os templates de texto para manter variedade.
-
-## Scraping responsável
-
-O projeto foi estruturado para evitar scraping agressivo:
-
-- usa delay entre requisições
-- tenta respeitar `robots.txt`
-- não tenta burlar login, captcha, Cloudflare ou proteções
-- prefere APIs públicas quando disponíveis
-
-Se uma loja bloquear ou limitar acesso, o comportamento esperado é falhar com log e não contornar a proteção.
-
-Quando uma loja retorna `403`, `429` ou `503`, o sistema pausa essa loja no ciclo atual em vez de insistir em todas as categorias. Quando `robots.txt` bloqueia a rota, a loja é apenas pulada no ciclo e isso não conta como erro operacional.
-
-Para reduzir ruído enquanto testa, você pode pular lojas específicas:
-
-```env
-DISABLED_STORES=Nuuvem,Amazon Brasil
-```
-
-## Hospedagem em VPS
-
-Fluxo recomendado:
-
-1. Crie a VPS com Python 3.11.
-2. Faça clone do projeto.
-3. Configure `.env`.
-4. Instale dependências.
-5. Teste com `python main.py --test`.
-6. Rode em produção com `python main.py --run`.
-7. Use `systemd`, `supervisor` ou `pm2` para manter o processo vivo.
-8. Faça rotação do arquivo `logs/autotechdealsx.log`.
-
-Exemplo simples com `systemd`:
-
-```ini
-[Unit]
-Description=AutoTechDealsX
-After=network.target
-
-[Service]
-WorkingDirectory=/srv/autotechdealsx
-ExecStart=/srv/autotechdealsx/.venv/bin/python main.py --run
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-## Hospedagem no Render
-
-O projeto inclui `render.yaml`, `runtime.txt` e `app.py` para subir como Web Service Flask.
-
-### Pelo Blueprint
-
-1. Suba o projeto para um repositorio no GitHub.
-2. No Render, escolha `New` > `Blueprint`.
-3. Conecte o repositorio.
-4. O Render vai ler `render.yaml`.
-5. Depois do deploy, acesse a URL `onrender.com`.
-
-### Pelo Web Service manual
-
-No Render, escolha `New` > `Web Service` e use:
+Login inicial:
 
 ```text
-Language: Python 3
-Build Command: pip install -r requirements.txt
-Start Command: gunicorn app:app
+admin@autotech.local
+admin123
 ```
 
-Variaveis recomendadas no Render:
+Troque esse usuário/senha antes de produção.
 
-```env
-TEST_MODE=true
-DISABLED_STORES=Nuuvem,Amazon Brasil
-POST_INTERVAL_MINUTES=15
-MAX_POSTS_PER_HOUR=4
-MIN_DISCOUNT_PERCENT=15
-WEB_CACHE_TTL_SECONDS=600
-AMAZON_ASSOCIATE_TAG=seu-tag
-MERCADO_LIVRE_AFFILIATE_ID=seu-matt-word
-MERCADO_LIVRE_TOOL_ID=seu-matt-tool
-ALIEXPRESS_AFFILIATE_ID=
+## Rodar backend manualmente
+
+Use estes comandos dentro da pasta `backend`, para evitar conflito com o `app.py` legado da raiz:
+
+```bash
+cd backend
+python -m venv ..\.venv
+..\.venv\Scripts\activate
+pip install -r requirements.txt
+alembic upgrade head
+python scripts/seed.py
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Para este painel manual, as chaves do X nao sao obrigatorias. Ele filtra e mostra o conteudo pronto para copiar, sem publicar automaticamente.
+Workers:
 
-Observacao: no plano gratuito, o Render pode desligar a instancia quando ela fica ociosa. O primeiro acesso pode demorar e a coleta inicial tambem pode levar alguns segundos. O SQLite local do servico nao deve ser tratado como armazenamento permanente; para historico duravel em producao, use disco persistente ou banco externo.
+```bash
+cd backend
+celery -A app.core.celery_app.celery_app worker --loglevel=INFO
+celery -A app.core.celery_app.celery_app beat --loglevel=INFO
+```
 
-## Limitações conhecidas
+Frontend:
 
-- Alguns scrapers HTML dependem da estrutura atual das páginas e podem exigir manutenção.
-- Nem todas as lojas listadas no objetivo possuem API pública estável para promoções.
-- As integrações de afiliado podem precisar de adaptação conforme a sua rede de parceria.
-- O projeto não promete identificar "menor preço histórico" quando ainda não houver histórico local suficiente.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## Testes
 
 ```bash
-pytest
+cd backend
+..\.venv\Scripts\python.exe -m pytest tests
 ```
 
-## Próximos passos recomendados
+## Publicação em canais
 
-- adicionar métricas por loja e taxa de conversão
-- enriquecer histórico de preços por mais tempo
-- incluir ranking de avaliações para jogos por endpoint adicional
-- separar fila de coleta e fila de publicação
+Discord:
+
+- Crie um webhook no servidor/canal desejado.
+- Preencha `DISCORD_WEBHOOK_URL`.
+- Cadastre ou use o canal `discord` no painel.
+
+Telegram:
+
+- Crie um bot com o BotFather.
+- Pegue o token do bot.
+- Pegue o `chat_id` do canal/grupo.
+- Preencha `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+
+X/Twitter:
+
+- Use apenas a API oficial.
+- Crie o app no X Developer Console.
+- Ative permissão de escrita.
+- Gere `API Key`, `API Secret`, `Access Token`, `Access Token Secret` e `Bearer Token`.
+- Preencha as variáveis `X_*`.
+- Mude `PUBLISH_DRY_RUN=false` somente depois de testar.
+
+## Afiliados
+
+Amazon:
+
+- Use o ID de associado no formato parecido com `seutag-20`.
+- Configure `AMAZON_ASSOCIATE_TAG`.
+
+Mercado Livre:
+
+- Use o `matt_word` como `MERCADO_LIVRE_AFFILIATE_ID`.
+- Use o `matt_tool` como `MERCADO_LIVRE_TOOL_ID`.
+
+AliExpress:
+
+- Configure `ALIEXPRESS_AFFILIATE_ID` quando tiver acesso ao portal/ID de afiliado.
+- Se ainda não tiver, pode rodar sem ele. Os links recebem UTM normal, mas não ficam monetizados pelo AliExpress.
+
+O sistema nunca deve esconder que o link é afiliado. As mensagens incluem aviso quando aplicável.
+
+## Como adicionar uma nova loja
+
+1. Crie um conector em `backend/app/connectors/`.
+2. Herde de `BaseConnector`.
+3. Prefira API oficial, feed de afiliado, RSS ou endpoint público documentado.
+4. Não burle captcha, login, Cloudflare ou bloqueios.
+5. Respeite rate limits e `robots.txt` quando usar HTML público.
+6. Retorne uma lista de `ProductSnapshot`.
+7. Registre o conector em `backend/app/connectors/registry.py`.
+8. Rode testes e uma coleta em `PUBLISH_DRY_RUN=true`.
+
+## Como adicionar um canal
+
+1. Crie um publisher em `backend/app/publishers/`.
+2. Implemente `publish(payload)`.
+3. Adicione o tipo de canal no enum `ChannelType`.
+4. Registre no `PublicationService`.
+5. Crie variáveis de ambiente para tokens.
+6. Garanta logs sem expor segredos.
+
+## Regras de coleta segura
+
+- Não usar técnicas agressivas de scraping.
+- Não contornar captcha, login, Cloudflare, bloqueio ou proteção anti-bot.
+- Preferir API oficial, feed de afiliado, RSS e webhooks.
+- Usar delays, retry com backoff e pausa quando houver erro excessivo.
+- Não prometer menor preço sem histórico suficiente.
+- Bloquear marketplace ou vendedor suspeito quando o dado estiver disponível.
+- Bloquear frete abusivo quando o dado estiver disponível.
+- Evitar repostar a mesma oferta no cooldown configurado.
+
+## Deploy no Render
+
+O projeto inclui `render.yaml` com:
+
+- Web service Docker do backend.
+- Worker Celery.
+- Scheduler Celery Beat.
+- Render Key Value para Redis.
+- PostgreSQL gerenciado.
+- Static site para o frontend.
+
+Passos:
+
+1. Suba o projeto para GitHub.
+2. No Render, escolha `New` > `Blueprint`.
+3. Conecte o repositório.
+4. Confirme os serviços do `render.yaml`.
+5. Depois do primeiro deploy, ajuste `VITE_API_BASE_URL` no serviço web se a URL pública do backend for diferente.
+6. Preencha variáveis secretas no painel do Render.
+7. Mantenha `PUBLISH_DRY_RUN=true` até validar tudo.
+
+Observação: no Render atual, Redis aparece como Render Key Value em Blueprints, e o tipo antigo `redis` é tratado como alias legado. O arquivo usa `type: keyvalue`.
+
+## Limitações importantes
+
+- A Steam já coleta dados reais via endpoint público.
+- As outras lojas estão como conectores preparados porque cada uma exige contrato, feed, API oficial ou parser permitido específico.
+- O sistema está pronto para integrar esses feeds sem técnicas agressivas.
+- O painel administra e publica ofertas, mas métricas avançadas de clique dependem de integrar um redirecionador ou serviço de tracking.
+
+## Exemplos de mensagem
+
+```text
+🔥 OFERTA IMPERDÍVEL
+
+SSD NVMe Kingston 1TB
+De R$ 399,00 por R$ 299,00
+🏬 Kabum
+📉 25% OFF
+
+🔗 https://link-da-oferta
+
+link afiliado / posso receber comissão
+```
+
+```text
+🎮 JOGO EM PROMOÇÃO
+
+Nome do jogo
+💰 R$ 19,90
+🏬 Steam
+📉 80% OFF
+
+🔗 https://link-da-oferta
+```

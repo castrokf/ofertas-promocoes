@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
 from dataclasses import asdict
+from pathlib import Path
 from threading import Lock
 from typing import Any
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+
+# Ensure sibling project packages are importable in constrained deploy environments.
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from affiliate.generic_affiliate import generate_affiliate_link
 from config import Settings, setup_logging
