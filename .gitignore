@@ -1,0 +1,16 @@
+.env
+.venv/
+venv/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/.pytest_cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.sqlite3
+logs/*.log
+exports/*.txt
+exports/*.json
+exports/*.csv
+.DS_Store
