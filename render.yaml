@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: autotechdealsx
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: TEST_MODE
+        value: "true"
+      - key: DISABLED_STORES
+        value: "Nuuvem,Amazon Brasil"
+      - key: POST_INTERVAL_MINUTES
+        value: "15"
+      - key: MAX_POSTS_PER_HOUR
+        value: "4"
+      - key: MIN_DISCOUNT_PERCENT
+        value: "15"
+      - key: WEB_CACHE_TTL_SECONDS
+        value: "600"

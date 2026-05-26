@@ -1,0 +1,11 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.sqlite3
+logs/*.log
+exports/*.txt
+exports/*.json
+exports/*.csv
