@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoTechDealsX</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">AutoTechDealsX</p>
+      <h1>Ofertas prontas para publicar</h1>
+    </div>
+    <form class="refresh" action="{{ url_for('refresh') }}" method="post">
+      <input type="hidden" name="segment" value="{{ segment }}">
+      <input type="hidden" name="limit" value="{{ limit }}">
+      <button type="submit">Atualizar</button>
+    </form>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Filtros">
+      <nav class="tabs">
+        <a class="{{ 'active' if segment == 'games' else '' }}" href="{{ url_for('index', segment='games', limit=limit) }}">Jogos</a>
+        <a class="{{ 'active' if segment == 'hardware' else '' }}" href="{{ url_for('index', segment='hardware', limit=limit) }}">Hardware</a>
+        <a class="{{ 'active' if segment == 'all' else '' }}" href="{{ url_for('index', segment='all', limit=limit) }}">Tudo</a>
+      </nav>
+      <form class="limit-form" action="{{ url_for('index') }}" method="get">
+        <input type="hidden" name="segment" value="{{ segment }}">
+        <label for="limit">Mostrar</label>
+        <input id="limit" name="limit" type="number" min="1" max="60" value="{{ limit }}">
+        <button type="submit">Aplicar</button>
+      </form>
+    </section>
+
+    <section class="metrics" aria-label="Resumo">
+      <div><span>{{ stats.collected }}</span><small>coletadas</small></div>
+      <div><span>{{ stats.approved }}</span><small>aprovadas</small></div>
+      <div><span>{{ stats.shown }}</span><small>na tela</small></div>
+      <div><span>{{ stats.rejected }}</span><small>rejeitadas</small></div>
+    </section>
+
+    <p class="timestamp">Atualizado em {{ generated_at }}</p>
+
+    {% if errors %}
+      <section class="notice">
+        {% for error in errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    {% if deals %}
+      <section class="deal-grid">
+        {% for deal in deals %}
+          <article class="deal-card">
+            <a class="cover" href="{{ deal.affiliate_url }}" target="_blank" rel="noopener sponsored">
+              {% if deal.image_url %}
+                <img src="{{ deal.image_url }}" alt="Capa de {{ deal.title }}" loading="lazy">
+              {% else %}
+                <div class="cover-fallback">{{ deal.store }}</div>
+              {% endif %}
+              <span class="discount">{{ deal.discount_percent }}% OFF</span>
+            </a>
+            <div class="deal-body">
+              <div class="deal-meta">
+                <span>{{ deal.store }}</span>
+                <span>{{ deal.category }}</span>
+              </div>
+              <h2>{{ deal.title }}</h2>
+              <div class="price-row">
+                <strong>{{ deal.current_price }}</strong>
+                {% if deal.old_price != 'n/a' %}
+                  <span>{{ deal.old_price }}</span>
+                {% endif %}
+              </div>
+              <div class="actions">
+                <a href="{{ deal.affiliate_url }}" target="_blank" rel="noopener sponsored">Abrir oferta</a>
+                <button type="button" data-copy-post>Copiar post</button>
+              </div>
+              <textarea readonly>{{ deal.tweet_text }}</textarea>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="empty">
+        <h2>Nenhuma oferta aprovada agora</h2>
+        <p>Atualize mais tarde ou ajuste o desconto minimo no ambiente do Render.</p>
+      </section>
+    {% endif %}
+  </main>
+
+  <script>
+    document.querySelectorAll("[data-copy-post]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const text = button.closest(".deal-card").querySelector("textarea").value;
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copiado";
+        setTimeout(() => {
+          button.textContent = "Copiar post";
+        }, 1600);
+      });
+    });
+  </script>
+</body>
+</html>
