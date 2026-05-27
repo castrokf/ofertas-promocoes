@@ -12,11 +12,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    store_status = sa.Enum("active", "paused", "disabled", name="storestatus")
-    collect_method = sa.Enum("api", "affiliate_feed", "rss", "public_page", "manual", name="storecollectmethod")
-    deal_status = sa.Enum("pending", "approved", "rejected", "published", "needs_review", name="dealstatus")
-    publication_status = sa.Enum("pending", "success", "failed", "skipped", name="publicationstatus")
-    channel_type = sa.Enum("discord", "telegram", "twitter_x", "site", name="channeltype")
+    store_status = postgresql.ENUM("active", "paused", "disabled", name="storestatus", create_type=False)
+    collect_method = postgresql.ENUM(
+        "api", "affiliate_feed", "rss", "public_page", "manual", name="storecollectmethod", create_type=False
+    )
+    deal_status = postgresql.ENUM(
+        "pending", "approved", "rejected", "published", "needs_review", name="dealstatus", create_type=False
+    )
+    publication_status = postgresql.ENUM(
+        "pending", "success", "failed", "skipped", name="publicationstatus", create_type=False
+    )
+    channel_type = postgresql.ENUM("discord", "telegram", "twitter_x", "site", name="channeltype", create_type=False)
 
     store_status.create(op.get_bind(), checkfirst=True)
     collect_method.create(op.get_bind(), checkfirst=True)
