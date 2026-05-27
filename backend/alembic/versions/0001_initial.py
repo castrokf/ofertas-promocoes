@@ -12,24 +12,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    store_status = postgresql.ENUM("active", "paused", "disabled", name="storestatus", create_type=False)
-    collect_method = postgresql.ENUM(
-        "api", "affiliate_feed", "rss", "public_page", "manual", name="storecollectmethod", create_type=False
-    )
-    deal_status = postgresql.ENUM(
-        "pending", "approved", "rejected", "published", "needs_review", name="dealstatus", create_type=False
-    )
-    publication_status = postgresql.ENUM(
-        "pending", "success", "failed", "skipped", name="publicationstatus", create_type=False
-    )
-    channel_type = postgresql.ENUM("discord", "telegram", "twitter_x", "site", name="channeltype", create_type=False)
-
-    store_status.create(op.get_bind(), checkfirst=True)
-    collect_method.create(op.get_bind(), checkfirst=True)
-    deal_status.create(op.get_bind(), checkfirst=True)
-    publication_status.create(op.get_bind(), checkfirst=True)
-    channel_type.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -48,8 +30,8 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column("slug", sa.String(length=120), nullable=False),
         sa.Column("base_url", sa.String(length=500), nullable=False),
-        sa.Column("collect_method", collect_method, nullable=False),
-        sa.Column("status", store_status, nullable=False),
+        sa.Column("collect_method", sa.String(length=40), nullable=False),
+        sa.Column("status", sa.String(length=40), nullable=False),
         sa.Column("rate_limit_per_minute", sa.Integer(), nullable=False, server_default="20"),
         sa.Column("supports_affiliate", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("trust_score", sa.Float(), nullable=False, server_default="1"),
@@ -122,7 +104,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("product_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("products.id"), nullable=False),
         sa.Column("price_history_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("price_history.id"), nullable=True),
-        sa.Column("status", deal_status, nullable=False),
+        sa.Column("status", sa.String(length=40), nullable=False),
         sa.Column("quality_label", sa.String(length=80), nullable=False, server_default="normal"),
         sa.Column("score", sa.Float(), nullable=False, server_default="0"),
         sa.Column("current_price", sa.Float(), nullable=False),
@@ -161,7 +143,7 @@ def upgrade() -> None:
         "publish_channels",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(length=120), nullable=False),
-        sa.Column("channel_type", channel_type, nullable=False),
+        sa.Column("channel_type", sa.String(length=40), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("config", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
@@ -174,7 +156,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("deal_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("deals.id"), nullable=False),
         sa.Column("channel_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("publish_channels.id"), nullable=False),
-        sa.Column("status", publication_status, nullable=False),
+        sa.Column("status", sa.String(length=40), nullable=False),
         sa.Column("message_text", sa.Text(), nullable=False),
         sa.Column("external_id", sa.String(length=255), nullable=True),
         sa.Column("published_url", sa.Text(), nullable=True),
@@ -255,6 +237,3 @@ def downgrade() -> None:
         "users",
     ]:
         op.drop_table(table_name)
-
-    for enum_name in ["channeltype", "publicationstatus", "dealstatus", "storecollectmethod", "storestatus"]:
-        sa.Enum(name=enum_name).drop(op.get_bind(), checkfirst=True)
