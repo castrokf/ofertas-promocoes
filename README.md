@@ -254,6 +254,107 @@ Passos:
 
 Observação: no Render atual, Redis aparece como Render Key Value em Blueprints, e o tipo antigo `redis` é tratado como alias legado. O arquivo usa `type: keyvalue`.
 
+## Deploy no Render sem Blueprint
+
+Se o Render pedir cartão ao abrir Blueprints, crie os serviços manualmente. Esse modo evita worker pago e usa um endpoint de cron seguro para coleta/publicação.
+
+### 1. PostgreSQL
+
+Crie:
+
+```text
+New > PostgreSQL
+```
+
+Escolha o plano Free se estiver disponível. Copie a `Internal Database URL`.
+
+### 2. Backend API
+
+Crie:
+
+```text
+New > Web Service
+Repository: castrokf/ofertas-promocoes
+Branch: main
+Runtime: Docker
+Dockerfile Path: backend/Dockerfile
+```
+
+Variáveis:
+
+```env
+DATABASE_URL=cole-a-internal-database-url-do-postgres
+SECRET_KEY=gere-um-texto-longo-aleatorio
+ENVIRONMENT=production
+PUBLISH_MODE=semi_automatic
+PUBLISH_DRY_RUN=true
+CRON_SECRET=gere-um-texto-longo-aleatorio
+MIN_DISCOUNT_PERCENT=15
+CORS_ORIGINS=https://sua-url-do-frontend.onrender.com
+PUBLIC_BASE_URL=https://sua-url-do-frontend.onrender.com
+AMAZON_ASSOCIATE_TAG=
+MERCADO_LIVRE_AFFILIATE_ID=castrok77
+MERCADO_LIVRE_TOOL_ID=23800724
+ALIEXPRESS_AFFILIATE_ID=
+DISCORD_WEBHOOK_URL=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+X_API_KEY=
+X_API_SECRET=
+X_ACCESS_TOKEN=
+X_ACCESS_TOKEN_SECRET=
+X_BEARER_TOKEN=
+```
+
+Teste:
+
+```text
+https://sua-api.onrender.com/api/v1/healthz
+```
+
+### 3. Frontend
+
+Crie:
+
+```text
+New > Static Site
+Repository: castrokf/ofertas-promocoes
+Branch: main
+Root Directory: frontend
+Build Command: npm install && npm run build
+Publish Directory: dist
+```
+
+Variável:
+
+```env
+VITE_API_BASE_URL=https://sua-api.onrender.com/api/v1
+```
+
+Depois que o frontend tiver URL, volte no backend e ajuste:
+
+```env
+CORS_ORIGINS=https://sua-url-do-frontend.onrender.com
+PUBLIC_BASE_URL=https://sua-url-do-frontend.onrender.com
+```
+
+### 4. Automação sem worker pago
+
+Use um cron externo, por exemplo cron-job.org, para chamar:
+
+```text
+https://sua-api.onrender.com/api/v1/cron/run?token=SEU_CRON_SECRET&segment=games&publish=true
+```
+
+Sugestão inicial:
+
+```text
+Intervalo: 15 minutos
+Método: GET
+```
+
+Enquanto `PUBLISH_DRY_RUN=true`, o sistema coleta, filtra e registra tentativa, mas não envia para canais externos.
+
 ## Limitações importantes
 
 - A Steam já coleta dados reais via endpoint público.

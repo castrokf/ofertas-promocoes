@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY backend /app
 
-CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+CMD ["sh", "-c", "alembic upgrade head && python scripts/seed.py && gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000}"]

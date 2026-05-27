@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, categories, channels, deals, health, logs, metrics, monitored_urls, rules, stores
+from app.api.routes import auth, categories, channels, cron, deals, health, logs, metrics, monitored_urls, rules, stores
 
 
 api_router = APIRouter()
@@ -14,3 +14,4 @@ api_router.include_router(rules.router, prefix="/rules", tags=["rules"])
 api_router.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 api_router.include_router(monitored_urls.router, prefix="/monitored-urls", tags=["monitored-urls"])
 api_router.include_router(logs.router, prefix="/logs", tags=["logs"])
+api_router.include_router(cron.router, prefix="/cron", tags=["cron"])

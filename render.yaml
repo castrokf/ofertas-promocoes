@@ -32,6 +32,8 @@ services:
         value: semi_automatic
       - key: PUBLISH_DRY_RUN
         value: "true"
+      - key: CRON_SECRET
+        sync: false
       - key: MIN_DISCOUNT_PERCENT
         value: "15"
       - key: AMAZON_ASSOCIATE_TAG
@@ -83,6 +85,8 @@ services:
         value: semi_automatic
       - key: PUBLISH_DRY_RUN
         value: "true"
+      - key: CRON_SECRET
+        sync: false
       - key: MIN_DISCOUNT_PERCENT
         value: "15"
       - key: AMAZON_ASSOCIATE_TAG
@@ -134,6 +138,8 @@ services:
         value: semi_automatic
       - key: PUBLISH_DRY_RUN
         value: "true"
+      - key: CRON_SECRET
+        sync: false
       - key: MIN_DISCOUNT_PERCENT
         value: "15"
 

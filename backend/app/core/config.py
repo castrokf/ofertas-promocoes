@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     publish_mode: Literal["automatic", "semi_automatic"] = "semi_automatic"
     publish_dry_run: bool = True
+    cron_secret: str = ""
     min_discount_percent: float = 15
     max_shipping_ratio: float = 0.25
     repost_cooldown_hours: int = 12
