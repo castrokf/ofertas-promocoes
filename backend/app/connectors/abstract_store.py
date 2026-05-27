@@ -25,13 +25,6 @@ class AmazonConnector(PreparedConnector):
     collect_method = "affiliate_feed"
 
 
-class MercadoLivreConnector(PreparedConnector):
-    store_slug = "mercado-livre"
-    store_name = "Mercado Livre"
-    base_url = "https://www.mercadolivre.com.br"
-    collect_method = "api"
-
-
 class AliExpressConnector(PreparedConnector):
     store_slug = "aliexpress"
     store_name = "AliExpress"

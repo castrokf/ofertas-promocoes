@@ -8,7 +8,6 @@ from app.connectors.abstract_store import (
     GreenManGamingConnector,
     KabumConnector,
     MagazineLuizaConnector,
-    MercadoLivreConnector,
     NintendoEshopConnector,
     NuuvemConnector,
     PichauConnector,
@@ -18,6 +17,7 @@ from app.connectors.abstract_store import (
     XboxStoreConnector,
 )
 from app.connectors.base import BaseConnector
+from app.connectors.mercadolivre import MercadoLivreConnector
 from app.connectors.steam import SteamConnector
 
 

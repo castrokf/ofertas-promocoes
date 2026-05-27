@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     amazon_associate_tag: str = ""
     mercado_livre_affiliate_id: str = ""
     mercado_livre_tool_id: str = ""
+    mercado_livre_access_token: str = ""
     aliexpress_affiliate_id: str = ""
 
     discord_webhook_url: str = ""

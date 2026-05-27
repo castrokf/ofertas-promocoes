@@ -89,6 +89,7 @@ MIN_DISCOUNT_PERCENT=15
 AMAZON_ASSOCIATE_TAG=
 MERCADO_LIVRE_AFFILIATE_ID=
 MERCADO_LIVRE_TOOL_ID=
+MERCADO_LIVRE_ACCESS_TOKEN=
 ALIEXPRESS_AFFILIATE_ID=
 DISCORD_WEBHOOK_URL=
 TELEGRAM_BOT_TOKEN=
@@ -195,6 +196,8 @@ Mercado Livre:
 
 - Use o `matt_word` como `MERCADO_LIVRE_AFFILIATE_ID`.
 - Use o `matt_tool` como `MERCADO_LIVRE_TOOL_ID`.
+- Para coletar produtos de hardware pela API oficial, configure `MERCADO_LIVRE_ACCESS_TOKEN`.
+- Sem `MERCADO_LIVRE_ACCESS_TOKEN`, o link afiliado funciona, mas a busca de produtos pode retornar `403`.
 
 AliExpress:
 
@@ -301,6 +304,7 @@ PUBLIC_BASE_URL=https://sua-url-do-frontend.onrender.com
 AMAZON_ASSOCIATE_TAG=
 MERCADO_LIVRE_AFFILIATE_ID=castrok77
 MERCADO_LIVRE_TOOL_ID=23800724
+MERCADO_LIVRE_ACCESS_TOKEN=
 ALIEXPRESS_AFFILIATE_ID=
 DISCORD_WEBHOOK_URL=
 TELEGRAM_BOT_TOKEN=
@@ -350,6 +354,12 @@ Use um cron externo, por exemplo cron-job.org, para chamar:
 
 ```text
 https://sua-api.onrender.com/api/v1/cron/run?token=SEU_CRON_SECRET&segment=games&publish=true
+```
+
+Para coletar hardware, crie outro cronjob com:
+
+```text
+https://sua-api.onrender.com/api/v1/cron/run?token=SEU_CRON_SECRET&segment=hardware&publish=true
 ```
 
 Sugestão inicial:
