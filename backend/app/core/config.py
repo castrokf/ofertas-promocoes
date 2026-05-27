@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +21,7 @@ class Settings(BaseSettings):
 
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 60 * 12
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    cors_origins: str = "http://localhost:5173"
     admin_email: str = "admin@autotech.local"
     admin_password: str = "admin123"
     reset_admin_password_on_start: bool = False
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     incredible_discount_percent: float = 50
     price_error_drop_percent: float = 70
 
-    disabled_stores: list[str] = Field(default_factory=list)
+    disabled_stores: str = ""
     default_rate_limit_per_minute: int = 20
     web_cache_ttl_seconds: int = 600
 
@@ -56,13 +57,6 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     ai_enabled: bool = False
 
-    @field_validator("cors_origins", "disabled_stores", mode="before")
-    @classmethod
-    def parse_csv(cls, value):
-        if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
-        return value
-
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value):
@@ -73,6 +67,28 @@ class Settings(BaseSettings):
             if value.startswith("postgresql://"):
                 return value.replace("postgresql://", "postgresql+psycopg://", 1)
         return value
+
+    @staticmethod
+    def parse_string_list(value: str) -> list[str]:
+        value = value.strip()
+        if not value:
+            return []
+        if value.startswith("["):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed if str(item).strip()]
+            except json.JSONDecodeError:
+                pass
+        return [item.strip() for item in value.split(",") if item.strip()]
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return self.parse_string_list(self.cors_origins)
+
+    @property
+    def disabled_store_list(self) -> list[str]:
+        return self.parse_string_list(self.disabled_stores)
 
 
 @lru_cache

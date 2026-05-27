@@ -60,7 +60,7 @@ class DealPipeline:
     ) -> PipelineResult:
         result = PipelineResult()
         slugs = store_slugs or self._default_store_slugs(segment)
-        disabled_stores = {slugify(store) for store in self.settings.disabled_stores}
+        disabled_stores = {slugify(store) for store in self.settings.disabled_store_list}
 
         for store_slug in slugs:
             if store_slug in disabled_stores:
