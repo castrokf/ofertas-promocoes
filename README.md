@@ -80,6 +80,9 @@ Principais variáveis:
 DATABASE_URL=postgresql+psycopg://autotech:autotech@postgres:5432/autotechdealsx
 REDIS_URL=redis://redis:6379/0
 SECRET_KEY=troque-em-producao
+ADMIN_EMAIL=admin@autotech.local
+ADMIN_PASSWORD=troque-esta-senha
+RESET_ADMIN_PASSWORD_ON_START=false
 PUBLISH_MODE=semi_automatic
 PUBLISH_DRY_RUN=true
 MIN_DISCOUNT_PERCENT=15
@@ -285,6 +288,9 @@ Variáveis:
 ```env
 DATABASE_URL=cole-a-internal-database-url-do-postgres
 SECRET_KEY=gere-um-texto-longo-aleatorio
+ADMIN_EMAIL=admin@autotech.local
+ADMIN_PASSWORD=troque-esta-senha
+RESET_ADMIN_PASSWORD_ON_START=false
 ENVIRONMENT=production
 PUBLISH_MODE=semi_automatic
 PUBLISH_DRY_RUN=true

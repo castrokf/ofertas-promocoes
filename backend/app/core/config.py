@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 60 * 12
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    admin_email: str = "admin@autotech.local"
+    admin_password: str = "admin123"
+    reset_admin_password_on_start: bool = False
 
     publish_mode: Literal["automatic", "semi_automatic"] = "semi_automatic"
     publish_dry_run: bool = True

@@ -10,8 +10,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from app.core.config import get_settings
 from app.core.database import SessionLocal
-from app.core.security import hash_password
+from app.core.security import PASSWORD_ALGORITHM, hash_password
 from app.models import (
     Category,
     ChannelType,
@@ -67,15 +68,21 @@ CATEGORIES = [
 
 
 def seed() -> None:
+    settings = get_settings()
     with SessionLocal() as db:
-        if db.scalar(select(User).where(User.email == "admin@autotech.local")) is None:
+        admin = db.scalar(select(User).where(User.email == settings.admin_email))
+        if admin is None:
             db.add(
                 User(
-                    email="admin@autotech.local",
-                    hashed_password=hash_password("admin123"),
+                    email=settings.admin_email,
+                    hashed_password=hash_password(settings.admin_password),
                     is_admin=True,
                 )
             )
+        elif settings.reset_admin_password_on_start or not admin.hashed_password.startswith(f"{PASSWORD_ALGORITHM}$"):
+            admin.hashed_password = hash_password(settings.admin_password)
+            admin.is_admin = True
+            admin.is_active = True
 
         for name, slug, base_url, method in STORES:
             if db.scalar(select(Store).where(Store.slug == slug)) is None:
@@ -86,7 +93,8 @@ def seed() -> None:
                         base_url=base_url,
                         collect_method=method,
                         status=StoreStatus.active,
-                        supports_affiliate=slug in {"amazon", "mercado-livre", "aliexpress", "magazine-luiza", "shopee"},
+                        supports_affiliate=slug
+                        in {"amazon", "mercado-livre", "aliexpress", "magazine-luiza", "shopee"},
                         trust_score=1.0,
                     )
                 )
@@ -103,4 +111,5 @@ def seed() -> None:
 
 if __name__ == "__main__":
     seed()
-    print("Seed completed. Admin: admin@autotech.local / admin123")
+    settings = get_settings()
+    print(f"Seed completed. Admin: {settings.admin_email}")

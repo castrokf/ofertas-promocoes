@@ -11,8 +11,41 @@ branch_labels = None
 depends_on = None
 
 
+def _table_exists(table_name: str) -> bool:
+    return sa.inspect(op.get_bind()).has_table(table_name)
+
+
+def _create_table_once(table_name: str, *columns, **kwargs) -> None:
+    if not _table_exists(table_name):
+        op.create_table(table_name, *columns, **kwargs)
+
+
+def _create_index_once(index_name: str, table_name: str, columns: list[str], unique: bool = False) -> None:
+    if not _table_exists(table_name):
+        return
+    inspector = sa.inspect(op.get_bind())
+    existing_indexes = {index["name"] for index in inspector.get_indexes(table_name)}
+    existing_constraints = {constraint["name"] for constraint in inspector.get_unique_constraints(table_name)}
+    if index_name not in existing_indexes and index_name not in existing_constraints:
+        op.create_index(index_name, table_name, columns, unique=unique)
+
+
+def _create_unique_constraint_once(constraint_name: str, table_name: str, columns: list[str]) -> None:
+    if not _table_exists(table_name):
+        return
+    inspector = sa.inspect(op.get_bind())
+    existing_constraints = {constraint["name"] for constraint in inspector.get_unique_constraints(table_name)}
+    if constraint_name not in existing_constraints:
+        op.create_unique_constraint(constraint_name, table_name, columns)
+
+
+def _drop_table_once(table_name: str) -> None:
+    if _table_exists(table_name):
+        op.drop_table(table_name)
+
+
 def upgrade() -> None:
-    op.create_table(
+    _create_table_once(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("email", sa.String(length=255), nullable=False),
@@ -22,9 +55,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
+    _create_index_once("ix_users_email", "users", ["email"], unique=True)
 
-    op.create_table(
+    _create_table_once(
         "stores",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(length=120), nullable=False),
@@ -39,10 +72,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_stores_name", "stores", ["name"], unique=True)
-    op.create_index("ix_stores_slug", "stores", ["slug"], unique=True)
+    _create_index_once("ix_stores_name", "stores", ["name"], unique=True)
+    _create_index_once("ix_stores_slug", "stores", ["slug"], unique=True)
 
-    op.create_table(
+    _create_table_once(
         "categories",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(length=120), nullable=False),
@@ -52,10 +85,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_categories_name", "categories", ["name"], unique=True)
-    op.create_index("ix_categories_slug", "categories", ["slug"], unique=True)
+    _create_index_once("ix_categories_name", "categories", ["name"], unique=True)
+    _create_index_once("ix_categories_slug", "categories", ["slug"], unique=True)
 
-    op.create_table(
+    _create_table_once(
         "products",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("store_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("stores.id"), nullable=False),
@@ -75,14 +108,14 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.UniqueConstraint("store_id", "external_id", name="uq_products_store_external_id"),
     )
-    op.create_index("ix_products_store_id", "products", ["store_id"])
-    op.create_index("ix_products_category_id", "products", ["category_id"])
-    op.create_index("ix_products_external_id", "products", ["external_id"])
-    op.create_index("ix_products_sku", "products", ["sku"])
-    op.create_index("ix_products_title", "products", ["title"])
-    op.create_index("ix_products_normalized_title", "products", ["normalized_title"])
+    _create_index_once("ix_products_store_id", "products", ["store_id"])
+    _create_index_once("ix_products_category_id", "products", ["category_id"])
+    _create_index_once("ix_products_external_id", "products", ["external_id"])
+    _create_index_once("ix_products_sku", "products", ["sku"])
+    _create_index_once("ix_products_title", "products", ["title"])
+    _create_index_once("ix_products_normalized_title", "products", ["normalized_title"])
 
-    op.create_table(
+    _create_table_once(
         "price_history",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("product_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("products.id"), nullable=False),
@@ -96,10 +129,10 @@ def upgrade() -> None:
         sa.Column("checked_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("raw_payload", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
     )
-    op.create_index("ix_price_history_product_id", "price_history", ["product_id"])
-    op.create_index("ix_price_history_checked_at", "price_history", ["checked_at"])
+    _create_index_once("ix_price_history_product_id", "price_history", ["product_id"])
+    _create_index_once("ix_price_history_checked_at", "price_history", ["checked_at"])
 
-    op.create_table(
+    _create_table_once(
         "deals",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("product_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("products.id"), nullable=False),
@@ -120,10 +153,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_deals_product_id", "deals", ["product_id"])
-    op.create_index("ix_deals_status", "deals", ["status"])
+    _create_index_once("ix_deals_product_id", "deals", ["product_id"])
+    _create_index_once("ix_deals_status", "deals", ["status"])
 
-    op.create_table(
+    _create_table_once(
         "alert_rules",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(length=160), nullable=False),
@@ -139,7 +172,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 
-    op.create_table(
+    _create_table_once(
         "publish_channels",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(length=120), nullable=False),
@@ -149,9 +182,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_unique_constraint("uq_publish_channels_name", "publish_channels", ["name"])
+    _create_unique_constraint_once("uq_publish_channels_name", "publish_channels", ["name"])
 
-    op.create_table(
+    _create_table_once(
         "publications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("deal_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("deals.id"), nullable=False),
@@ -166,10 +199,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_publications_deal_id", "publications", ["deal_id"])
-    op.create_index("ix_publications_channel_id", "publications", ["channel_id"])
+    _create_index_once("ix_publications_deal_id", "publications", ["deal_id"])
+    _create_index_once("ix_publications_channel_id", "publications", ["channel_id"])
 
-    op.create_table(
+    _create_table_once(
         "affiliate_links",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("store_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("stores.id"), nullable=False),
@@ -181,9 +214,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_affiliate_links_store_id", "affiliate_links", ["store_id"])
+    _create_index_once("ix_affiliate_links_store_id", "affiliate_links", ["store_id"])
 
-    op.create_table(
+    _create_table_once(
         "monitored_urls",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("store_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("stores.id"), nullable=False),
@@ -196,9 +229,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_monitored_urls_store_id", "monitored_urls", ["store_id"])
+    _create_index_once("ix_monitored_urls_store_id", "monitored_urls", ["store_id"])
 
-    op.create_table(
+    _create_table_once(
         "log_entries",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("level", sa.String(length=20), nullable=False),
@@ -207,11 +240,11 @@ def upgrade() -> None:
         sa.Column("context", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index("ix_log_entries_level", "log_entries", ["level"])
-    op.create_index("ix_log_entries_source", "log_entries", ["source"])
-    op.create_index("ix_log_entries_created_at", "log_entries", ["created_at"])
+    _create_index_once("ix_log_entries_level", "log_entries", ["level"])
+    _create_index_once("ix_log_entries_source", "log_entries", ["source"])
+    _create_index_once("ix_log_entries_created_at", "log_entries", ["created_at"])
 
-    op.create_table(
+    _create_table_once(
         "system_settings",
         sa.Column("key", sa.String(length=160), primary_key=True),
         sa.Column("value", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
@@ -236,4 +269,4 @@ def downgrade() -> None:
         "stores",
         "users",
     ]:
-        op.drop_table(table_name)
+        _drop_table_once(table_name)
