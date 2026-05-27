@@ -3,6 +3,15 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.environ["PYTHONPATH"] = (
+    str(PROJECT_ROOT)
+    if not os.getenv("PYTHONPATH")
+    else f"{PROJECT_ROOT}{os.pathsep}{os.environ['PYTHONPATH']}"
+)
 
 
 def run_step(name: str, command: list[str]) -> None:
